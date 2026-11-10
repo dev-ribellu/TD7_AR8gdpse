@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AR.js - Suivi d'image NFT</title>
+    <script src="https://cdn.jsdelivr.net/gh/aframevr/aframe@1c2407b26c61958baa93967b5412487cd94b290b/dist/aframe-master.min.js"></script>
+    <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar-nft.js"></script>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+        }
+        .arjs-loader {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            font-size: 1.2em;
+            z-index: 1000;
+        }
+        .message {
+            position: absolute;
+            bottom: 10%;
+            width: 100%;
+            text-align: center;
+            color: white;
+            font-size: 1em;
+            z-index: 1000;
+        }
+    </style>
+</head>
+<body>
+    <div class="arjs-loader">Chargement, veuillez patienter...</div>
+    <div class="message">Pointez la caméra vers la flèche jaune</div>
+
+    <a-scene vr-mode-ui="enabled: false;" renderer="logarithmicDepthBuffer: true;" embedded arjs="trackingMethod: best; sourceType: webcam; debugUIEnabled: false;">
+        <!-- NFT Marker -->
+        <a-nft type="nft" url="assets/arrow" smooth="true" smoothCount="10" smoothTolerance=".01" smoothThreshold="5">
+            <!-- Modèle 3D -->
+            <a-entity gltf-model="assets/model.glb" scale="2 2 2" position="50 0 -50" rotation="-90 0 0"></a-entity>
+        </a-nft>
+
+        <!-- Caméra -->
+        <a-entity camera></a-entity>
+    </a-scene>
+
+    <script>
+        // Masquer l'écran de chargement lorsque le NFT est chargé
+        document.querySelector('a-scene').addEventListener('arjs-nft-loaded', () => {
+            document.querySelector('.arjs-loader').style.display = 'none';
+        });
+
+        // Gestion des messages pour le marker
+        const message = document.querySelector('.message');
+        const nftMarker = document.querySelector('a-nft');
+
+        nftMarker.addEventListener('markerFound', () => {
+            message.style.display = 'none';
+        });
+
+        nftMarker.addEventListener('markerLost', () => {
+            message.style.display = 'block';
+        });
+
+        // Composant pour animer le modèle ou le faire tourner
+        AFRAME.registerComponent('animate-or-rotate', {
+            init: function () {
+                const model = this.el;
+                if (model.hasAttribute('animation-mixer')) {
+                    // Si le modèle est animé, activer l'animation
+                    model.setAttribute('animation-mixer', '');
+                } else {
+                    // Sinon, appliquer une rotation continue
+                    this.el.sceneEl.addBehavior({
+                        tick: (time, timeDelta) => {
+                            const rotation = model.getAttribute('rotation');
+                            rotation.y += timeDelta / 1000 * 15; // 15 degrés par seconde
+                            model.setAttribute('rotation', rotation);
+                        }
+                    });
+                }
+            }
+        });
+    </script>
+</body>
+</html>
