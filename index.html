@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AR.js - Suivi d'image NFT</title>
     <script src="https://cdn.jsdelivr.net/gh/aframevr/aframe@1c2407b26c61958baa93967b5412487cd94b290b/dist/aframe-master.min.js"></script>
-    <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar-nft.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/AR-js-org/AR.js@3.4.5/aframe/build/aframe-ar-nft.js"></script>
     <style>
         body {
             margin: 0;
@@ -32,7 +32,7 @@
             text-align: center;
             color: white;
             font-size: 1em;
-            z-index: 1000;
+            z-index: 999;
         }
     </style>
 </head>
@@ -44,7 +44,7 @@
         <!-- NFT Marker -->
         <a-nft type="nft" url="assets/arrow" smooth="true" smoothCount="10" smoothTolerance=".01" smoothThreshold="5">
             <!-- Modèle 3D -->
-            <a-entity gltf-model="assets/model.glb" scale="2 2 2" position="50 0 -50" rotation="-90 0 0"></a-entity>
+            <a-entity gltf-model="assets/model.glb" scale="2 2 2" position="50 0 -50" rotation="-90 0 0" animate-or-rotate></a-entity>
         </a-nft>
 
         <!-- Caméra -->
@@ -52,15 +52,28 @@
     </a-scene>
 
     <script>
-        // Masquer l'écran de chargement lorsque le NFT est chargé
-        document.querySelector('a-scene').addEventListener('arjs-nft-loaded', () => {
-            document.querySelector('.arjs-loader').style.display = 'none';
-        });
-
-        // Gestion des messages pour le marker
+        // --- Masquage de l'écran de chargement ---
+        const loader = document.querySelector('.arjs-loader');
         const message = document.querySelector('.message');
+        const scene = document.querySelector('a-scene');
         const nftMarker = document.querySelector('a-nft');
 
+        let loaderHidden = false;
+        const hideLoader = () => {
+            if (loaderHidden) return;
+            loaderHidden = true;
+            loader.style.display = 'none';
+        };
+
+        // Plusieurs déclencheurs, le premier qui part masque le loader
+        scene.addEventListener('arjs-nft-loaded', hideLoader);
+        scene.addEventListener('loaded', () => setTimeout(hideLoader, 3000));
+        nftMarker.addEventListener('markerFound', hideLoader);
+
+        // Sécurité : masquage forcé après 10 secondes
+        setTimeout(hideLoader, 10000);
+
+        // --- Messages du marker ---
         nftMarker.addEventListener('markerFound', () => {
             message.style.display = 'none';
         });
@@ -69,25 +82,16 @@
             message.style.display = 'block';
         });
 
-        // Composant pour animer le modèle ou le faire tourner
+        // --- Rotation continue du modèle ---
         AFRAME.registerComponent('animate-or-rotate', {
-            init: function () {
-                const model = this.el;
-                if (model.hasAttribute('animation-mixer')) {
-                    // Si le modèle est animé, activer l'animation
-                    model.setAttribute('animation-mixer', '');
-                } else {
-                    // Sinon, appliquer une rotation continue
-                    this.el.sceneEl.addBehavior({
-                        tick: (time, timeDelta) => {
-                            const rotation = model.getAttribute('rotation');
-                            rotation.y += timeDelta / 1000 * 15; // 15 degrés par seconde
-                            model.setAttribute('rotation', rotation);
-                        }
-                    });
-                }
+            tick: function (time, delta) {
+                this.el.object3D.rotation.z += (delta / 1000) * 0.26; // ~15°/s
             }
         });
     </script>
+
+    <!-- Console de debug sur mobile : à SUPPRIMER une fois le problème réglé -->
+    <script src="https://cdn.jsdelivr.net/npm/eruda"></script>
+    <script>eruda.init();</script>
 </body>
 </html>
