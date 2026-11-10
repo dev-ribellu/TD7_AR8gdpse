@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AR.js - Suivi d'image NFT v9</title>
+    <title>AR.js - Suivi d'image NFT v10</title>
 
     <script src="https://aframe.io/releases/1.3.0/aframe.min.js"></script>
     <script src="https://cdn.jsdelivr.net/gh/AR-js-org/AR.js@3.4.5/aframe/build/aframe-ar-nft.js"></script>
@@ -28,32 +28,32 @@
             }
         });
 
-        // Suivi du marqueur + gel de la pose
-        //  - tant que le marqueur est visible : le modèle suit la flèche
-        //  - marqueur perdu : le modèle reste à sa dernière pose
-        //  - "poser" : le modèle est figé dans le monde (ne suit plus)
+        // Le modèle :
+        //  - reste CACHÉ tant que la flèche n'a jamais été scannée
+        //  - suit la flèche tant qu'elle est visible
+        //  - garde sa dernière pose si la flèche est perdue
+        //  - si "locked" (posé) : ne bouge plus du tout dans le monde
         AFRAME.registerComponent('follow-marker', {
             schema: { marker: { type: 'selector' } },
             init: function () {
                 this.visible = false;
                 this.locked = false;
-                this.everSeen = false;
                 this.tmpPos = new THREE.Vector3();
                 this.tmpQuat = new THREE.Quaternion();
                 this.tmpScl = new THREE.Vector3();
+                this.off = new THREE.Vector3();
 
-                // Position par défaut : devant la caméra, au milieu de l'écran
-                this.el.object3D.position.set(0, -0.3, -1.5);
+                this.el.object3D.visible = false; // caché au départ
 
                 this.data.marker.addEventListener('markerFound', () => {
                     this.visible = true;
-                    this.everSeen = true;
-                    this.el.object3D.visible = true;
-                    document.querySelector('.message').style.display = 'none';
+                    if (!this.locked) {
+                        this.el.object3D.visible = true;
+                        document.querySelector('.message').style.display = 'none';
+                    }
                 });
                 this.data.marker.addEventListener('markerLost', () => {
                     this.visible = false;
-                    if (!this.locked) document.querySelector('.message').style.display = 'block';
                 });
             },
             tick: function () {
@@ -63,12 +63,10 @@
                 m.matrixWorld.decompose(this.tmpPos, this.tmpQuat, this.tmpScl);
 
                 const o = this.el.object3D;
-                // On copie la pose du marqueur dans le repère monde
                 o.position.copy(this.tmpPos);
                 o.quaternion.copy(this.tmpQuat);
-                // Décalage vers le centre de l'image (modifiable via les boutons)
-                const off = new THREE.Vector3(window.OFFSET_X, window.OFFSET_Y, 0).applyQuaternion(this.tmpQuat);
-                o.position.add(off);
+                this.off.set(window.OFFSET_X, window.OFFSET_Y, 0).applyQuaternion(this.tmpQuat);
+                o.position.add(this.off);
             }
         });
     </script>
@@ -132,7 +130,7 @@
             smooth="true" smoothCount="10" smoothTolerance="0.01" smoothThreshold="5">
         </a-nft>
 
-        <!-- Ancre : suit le marqueur (follow-marker), indépendante de la hiérarchie du NFT -->
+        <!-- Ancre indépendante du marqueur, cachée jusqu'au premier scan -->
         <a-entity id="anchor" follow-marker="marker: #nft">
             <a-entity
                 id="model"
@@ -147,7 +145,6 @@
     </a-scene>
 
     <script>
-        // Décalage vers le centre de l'image (en unités du marqueur NFT)
         window.OFFSET_X = 0;
         window.OFFSET_Y = 0;
 
@@ -158,7 +155,7 @@
         const model = document.getElementById('model');
         const anchor = document.getElementById('anchor');
 
-        const log = (t) => { statusEl.textContent = t; console.log('[v9]', t); };
+        const log = (t) => { statusEl.textContent = t; console.log('[v10]', t); };
 
         let loaderHidden = false;
         const hideLoader = () => {
@@ -192,20 +189,29 @@
         document.getElementById('oy-plus').addEventListener('click', () => shift(0, STEP));
 
         // --- Poser au sol ---
-        // Fige le modèle à sa position actuelle dans le monde.
-        // (Détection du sol WebXR non combinable avec AR.js NFT : on fige donc la pose courante.)
+        // Fige le modèle à sa position actuelle dans le monde (il ne suit plus la flèche).
+        // Si la flèche n'a jamais été scannée, on ne peut rien poser.
         document.getElementById('pose').addEventListener('click', () => {
             const comp = anchor.components['follow-marker'];
+            if (!anchor.object3D.visible) {
+                log('scanne d\'abord la flèche');
+                return;
+            }
             comp.locked = true;
             document.querySelector('.message').style.display = 'none';
-            log('modèle posé (figé)');
+            log('modèle posé (figé dans le monde)');
         });
 
         // --- Reprendre le suivi de la flèche ---
         document.getElementById('reset').addEventListener('click', () => {
             const comp = anchor.components['follow-marker'];
             comp.locked = false;
-            log('suit la flèche');
+            if (comp.visible) {
+                log('suit la flèche');
+            } else {
+                log('scanne la flèche pour reprendre le suivi');
+                document.querySelector('.message').style.display = 'block';
+            }
         });
     </script>
 
