@@ -13,7 +13,8 @@
     <script>
         AFRAME.registerComponent('animate-or-rotate', {
             tick: function (time, delta) {
-                this.el.object3D.rotation.z += (delta / 1000) * 0.26; // ~15°/s
+                // Rotation autour de l'axe vertical du modèle (~15°/s)
+                this.el.object3D.rotation.y += (delta / 1000) * 0.26;
             }
         });
     </script>
@@ -53,10 +54,16 @@
     <div class="message">Pointez la caméra vers la flèche jaune</div>
 
     <a-scene vr-mode-ui="enabled: false;" renderer="logarithmicDepthBuffer: true;" embedded arjs="trackingMethod: best; sourceType: webcam; debugUIEnabled: false;">
-        <!-- NFT Marker : URL ABSOLUE (remplace NOM-DU-DEPOT par le nom exact de ton dépôt) -->
+        <!-- NFT Marker (URL absolue) -->
         <a-nft type="nft" url="https://dev-ribellu.github.io/TD7_AR8gdpse/assets/arrow" smooth="true" smoothCount="10" smoothTolerance=".01" smoothThreshold="5">
-            <!-- Modèle 3D : URL absolue aussi (remplace NOM-DU-DEPOT) -->
-            <a-entity gltf-model="https://dev-ribellu.github.io/TD7_AR8gdpse/assets/model.glb" scale="2 2 2" position="50 0 -50" rotation="-90 0 0" animate-or-rotate></a-entity>
+            <!-- Modèle 3D debout sur le sol -->
+            <a-entity
+                gltf-model="https://dev-ribellu.github.io/TD7_AR8gdpse/assets/model.glb"
+                scale="2 2 2"
+                position="50 0 0"
+                rotation="90 0 0"
+                animate-or-rotate>
+            </a-entity>
         </a-nft>
 
         <!-- Caméra -->
