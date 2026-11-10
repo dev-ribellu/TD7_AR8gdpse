@@ -4,8 +4,20 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AR.js - Suivi d'image NFT</title>
-    <script src="https://cdn.jsdelivr.net/gh/aframevr/aframe@1c2407b26c61958baa93967b5412487cd94b290b/dist/aframe-master.min.js"></script>
+
+    <!-- A-Frame 1.3.0 (compatible AR.js 3.4.5) -->
+    <script src="https://aframe.io/releases/1.3.0/aframe.min.js"></script>
     <script src="https://cdn.jsdelivr.net/gh/AR-js-org/AR.js@3.4.5/aframe/build/aframe-ar-nft.js"></script>
+
+    <!-- Composant déclaré AVANT la scène -->
+    <script>
+        AFRAME.registerComponent('animate-or-rotate', {
+            tick: function (time, delta) {
+                this.el.object3D.rotation.z += (delta / 1000) * 0.26; // ~15°/s
+            }
+        });
+    </script>
+
     <style>
         body {
             margin: 0;
@@ -65,32 +77,20 @@
             loader.style.display = 'none';
         };
 
-        // Plusieurs déclencheurs, le premier qui part masque le loader
         scene.addEventListener('arjs-nft-loaded', hideLoader);
-        scene.addEventListener('loaded', () => setTimeout(hideLoader, 3000));
         nftMarker.addEventListener('markerFound', hideLoader);
-
-        // Sécurité : masquage forcé après 10 secondes
-        setTimeout(hideLoader, 10000);
+        setTimeout(hideLoader, 10000); // sécurité
 
         // --- Messages du marker ---
         nftMarker.addEventListener('markerFound', () => {
             message.style.display = 'none';
         });
-
         nftMarker.addEventListener('markerLost', () => {
             message.style.display = 'block';
         });
-
-        // --- Rotation continue du modèle ---
-        AFRAME.registerComponent('animate-or-rotate', {
-            tick: function (time, delta) {
-                this.el.object3D.rotation.z += (delta / 1000) * 0.26; // ~15°/s
-            }
-        });
     </script>
 
-    <!-- Console de debug sur mobile : à SUPPRIMER une fois le problème réglé -->
+    <!-- Console de debug mobile : à SUPPRIMER une fois que tout marche -->
     <script src="https://cdn.jsdelivr.net/npm/eruda"></script>
     <script>eruda.init();</script>
 </body>
