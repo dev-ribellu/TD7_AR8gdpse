@@ -53,10 +53,10 @@
     <div class="message">Pointez la caméra vers la flèche jaune</div>
 
     <a-scene vr-mode-ui="enabled: false;" renderer="logarithmicDepthBuffer: true;" embedded arjs="trackingMethod: best; sourceType: webcam; debugUIEnabled: false;">
-        <!-- NFT Marker -->
-        <a-nft type="nft" url="assets/arrow" smooth="true" smoothCount="10" smoothTolerance=".01" smoothThreshold="5">
-            <!-- Modèle 3D -->
-            <a-entity gltf-model="assets/model.glb" scale="2 2 2" position="50 0 -50" rotation="-90 0 0" animate-or-rotate></a-entity>
+        <!-- NFT Marker : URL ABSOLUE (remplace NOM-DU-DEPOT par le nom exact de ton dépôt) -->
+        <a-nft type="nft" url="https://dev-ribellu.github.io/TD7_AR8gdpse/assets/arrow" smooth="true" smoothCount="10" smoothTolerance=".01" smoothThreshold="5">
+            <!-- Modèle 3D : URL absolue aussi (remplace NOM-DU-DEPOT) -->
+            <a-entity gltf-model="https://dev-ribellu.github.io/TD7_AR8gdpse/assets/model.glb" scale="2 2 2" position="50 0 -50" rotation="-90 0 0" animate-or-rotate></a-entity>
         </a-nft>
 
         <!-- Caméra -->
