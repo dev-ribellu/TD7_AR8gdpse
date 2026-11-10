@@ -3,12 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AR.js - Suivi d'image NFT v7</title>
+    <title>AR.js - Suivi d'image NFT v8</title>
 
     <script src="https://aframe.io/releases/1.3.0/aframe.min.js"></script>
     <script src="https://cdn.jsdelivr.net/gh/AR-js-org/AR.js@3.4.5/aframe/build/aframe-ar-nft.js"></script>
-    <!-- Nécessaire pour jouer l'animation (danse) du GLB -->
-    <script src="https://cdn.jsdelivr.net/gh/c-frame/aframe-extras@7.2.0/dist/aframe-extras.animation-mixer.min.js"></script>
 
     <script>
         // À la détection : on copie la pose du marqueur sur le modèle, une seule fois.
@@ -24,7 +22,6 @@
                     const scl = new THREE.Vector3();
                     d.marker.object3D.matrixWorld.decompose(pos, quat, scl);
 
-                    // Décalage vers le centre de l'image
                     const offset = new THREE.Vector3(50, 50, 0).applyQuaternion(quat);
                     pos.add(offset);
 
@@ -37,18 +34,28 @@
             }
         });
 
-        // Mesure la taille réelle du modèle
-        AFRAME.registerComponent('ground-and-measure', {
+        // Lecteur d'animation maison (ne dépend d'aucune lib externe)
+        AFRAME.registerComponent('play-dance', {
             init: function () {
+                this.mixer = null;
                 this.el.addEventListener('model-loaded', () => {
-                    const box = new THREE.Box3().setFromObject(this.el.getObject3D('mesh'));
-                    const size = new THREE.Vector3();
-                    box.getSize(size);
-                    window.modelSize = size;
-                    const info = 'taille brute: ' + size.x.toFixed(1) + ' x ' + size.y.toFixed(1) + ' x ' + size.z.toFixed(1);
-                    console.log('[v7]', info);
+                    const mesh = this.el.getObject3D('mesh');
+                    const clips = (mesh && mesh.animations) || [];
+                    const info = clips.length
+                        ? 'clips: ' + clips.map(c => c.name + ' (' + c.duration.toFixed(1) + 's)').join(', ')
+                        : 'clips: AUCUN';
                     document.getElementById('status').textContent = 'GLB OK | ' + info;
+                    console.log('[v8]', info);
+
+                    if (!clips.length) return;
+                    this.mixer = new THREE.AnimationMixer(mesh);
+                    const action = this.mixer.clipAction(clips[0]);
+                    action.setLoop(THREE.LoopRepeat);
+                    action.play();
                 });
+            },
+            tick: function (time, delta) {
+                if (this.mixer) this.mixer.update(delta / 1000);
             }
         });
     </script>
@@ -62,7 +69,7 @@
             color: white; font-size: 1.2em; z-index: 1000; pointer-events: none;
         }
         .message {
-            position: absolute; bottom: 18%; width: 100%;
+            position: absolute; bottom: 14%; width: 100%;
             text-align: center; color: white; z-index: 999;
         }
         #status {
@@ -80,7 +87,6 @@
             padding: 10px 12px; font-size: 14px; border: 0;
             border-radius: 6px; background: #fff; color: #000;
         }
-        #controls button.big { background: #ffd400; font-weight: bold; }
     </style>
 </head>
 <body>
@@ -89,14 +95,11 @@
     <div class="message">Pointez la caméra vers la flèche jaune</div>
 
     <div id="controls">
-        <button id="minus" class="big">Taille -</button>
-        <button id="plus" class="big">Taille +</button>
+        <button id="plus">Taille +</button>
+        <button id="minus">Taille −</button>
         <button data-r="0 0 0">0 0 0</button>
         <button data-r="90 0 0">90 0 0</button>
         <button data-r="-90 0 0">-90 0 0</button>
-        <button data-r="0 90 0">0 90 0</button>
-        <button data-r="0 180 0">0 180 0</button>
-        <button data-r="90 180 0">90 180 0</button>
         <button id="reset">Replacer</button>
     </div>
 
@@ -118,10 +121,9 @@
             <a-entity
                 id="model"
                 gltf-model="url(https://dev-ribellu.github.io/TD7_AR8gdpse/assets/dance.glb)"
+                play-dance
                 scale="1 1 1"
-                rotation="90 0 0"
-                animation-mixer="clip: *; loop: repeat"
-                ground-and-measure>
+                rotation="90 0 0">
             </a-entity>
         </a-entity>
 
@@ -137,7 +139,7 @@
         const model = document.getElementById('model');
         const anchor = document.getElementById('anchor');
 
-        const log = (t) => { statusEl.textContent = t; console.log('[v7]', t); };
+        const log = (t) => { statusEl.textContent = t; console.log('[v8]', t); };
 
         let loaderHidden = false;
         const hideLoader = () => {
@@ -147,18 +149,10 @@
         };
         setTimeout(hideLoader, 6000);
 
-        scene.addEventListener('arjs-nft-loaded', () => { hideLoader(); log('NFT chargé'); });
+        scene.addEventListener('arjs-nft-loaded', hideLoader);
         model.addEventListener('model-error', () => log('ERREUR GLB (vérifie assets/dance.glb)'));
         nftMarker.addEventListener('markerFound', () => { hideLoader(); message.style.display = 'none'; });
 
-        // Affiche les clips d'animation trouvés dans le GLB
-        model.addEventListener('model-loaded', () => {
-            const clips = (model.getObject3D('mesh').animations || []).map(a => a.name);
-            console.log('[v7] clips:', clips);
-            statusEl.textContent += ' | clips: ' + (clips.length ? clips.join(', ') : 'AUCUN');
-        });
-
-        // Taille : multiplie / divise par 2 à chaque clic
         let currentScale = 1;
         const applyScale = () => {
             model.setAttribute('scale', currentScale + ' ' + currentScale + ' ' + currentScale);
@@ -175,8 +169,7 @@
         });
 
         document.getElementById('reset').addEventListener('click', () => {
-            const comp = scene.components['anchor-on-found'];
-            comp.placed = false;
+            scene.components['anchor-on-found'].placed = false;
             anchor.object3D.visible = false;
             message.style.display = 'block';
             log('scanne à nouveau la flèche');
